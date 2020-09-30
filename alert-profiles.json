@@ -1,0 +1,168 @@
+  {
+    "owner": "name@email.com",
+    "name": "20200930test",
+    "previousName": "",
+    "_id": "test",
+    "email": {
+      "enabled": false,
+      "smtpAddress": "",
+      "port": 0,
+      "credentialId": "",
+      "from": "",
+      "ssl": false
+    },
+    "slack": {
+      "enabled": true,
+      "webhookUrl": "https://hooks.slack.com/services/",
+      "channels": [
+        "demo"
+      ],
+      "users": [
+        "nohara-m"
+      ]
+    },
+    "jira": {
+      "enabled": false,
+      "baseUrl": "",
+      "credentialId": "",
+      "caCert": "",
+      "projectKey": {},
+      "issueType": "",
+      "priority": "",
+      "labels": {},
+      "assignee": {}
+    },
+    "securityCenter": {
+      "enabled": false,
+      "credentialId": "",
+      "sourceID": ""
+    },
+    "gcpPubsub": {
+      "enabled": false,
+      "credentialId": "",
+      "topic": ""
+    },
+    "securityHub": {
+      "enabled": false,
+      "region": "",
+      "accountID": "",
+      "credentialId": "",
+      "useAWSRole": false,
+      "roleArn": ""
+    },
+    "securityAdvisor": {
+      "enabled": false,
+      "credentialID": "",
+      "providerId": "",
+      "findingsURL": "",
+      "tokenURL": ""
+    },
+    "pagerduty": {
+      "routingKey": {
+        "encrypted": ""
+      },
+      "summary": "",
+      "severity": ""
+    },
+    "webhook": {
+      "credentialId": "",
+      "url": ""
+    },
+    "demisto": {},
+    "serviceNow": {
+      "project": "",
+      "application": "",
+      "assignee": "",
+      "credentialID": ""
+    },
+    "policy": {
+      "admission": {
+        "enabled": false,
+        "allRules": true,
+        "rules": []
+      },
+      "appEmbeddedAppFirewall": {
+        "enabled": false,
+        "allRules": true,
+        "rules": []
+      },
+      "appEmbeddedRuntime": {
+        "enabled": false,
+        "allRules": true,
+        "rules": []
+      },
+      "cloudDiscovery": {
+        "enabled": false,
+        "allRules": true,
+        "rules": []
+      },
+      "containerAppFirewall": {
+        "enabled": false,
+        "allRules": true,
+        "rules": []
+      },
+      "containerCompliance": {
+        "enabled": false,
+        "allRules": true,
+        "rules": []
+      },
+      "containerRuntime": {
+        "enabled": false,
+        "allRules": true,
+        "rules": []
+      },
+      "containerVulnerability": {
+        "enabled": false,
+        "allRules": true,
+        "rules": []
+      },
+      "defender": {
+        "enabled": false,
+        "allRules": true,
+        "rules": []
+      },
+      "docker": {
+        "enabled": false,
+        "allRules": false,
+        "rules": []
+      },
+      "hostAppFirewall": {
+        "enabled": false,
+        "allRules": true,
+        "rules": []
+      },
+      "hostCompliance": {
+        "enabled": false,
+        "allRules": true,
+        "rules": []
+      },
+      "hostRuntime": {
+        "enabled": false,
+        "allRules": true,
+        "rules": []
+      },
+      "incident": {
+        "enabled": false,
+        "allRules": true,
+        "rules": []
+      },
+      "kubernetesAudit": {
+        "enabled": false,
+        "allRules": true,
+        "rules": []
+      },
+      "serverlessAppFirewall": {
+        "enabled": true,
+        "allRules": false,
+        "rules": [
+          "serv"
+        ]
+      },
+      "serverlessRuntime": {
+        "enabled": false,
+        "allRules": true,
+        "rules": []
+      }
+    },
+    "lastError": ""
+  }
