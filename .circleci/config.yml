@@ -10,10 +10,10 @@ workflows:
   
   tests:
     jobs:
-      - defend-vulnerabilities-get:
+      - audit:
           context: api_test
-#      - defend-compliance-get:
-#          context: api_test
+      - authenticate:
+          context: api_test
 #      - defend-runtime-get:
 #          context: api_test
 #      - defend-waas-get:
@@ -23,7 +23,7 @@ workflows:
       
       
 jobs:
-  defend-vulnerabilities-get:
+  audit:
     executor: tester
     
 #    environment:
@@ -32,10 +32,13 @@ jobs:
     steps:
       - checkout
                      
+######################################## _PING ############################################      
       - run:
           name: _Ping
           command: |
             curl -k -s -o /dev/null -w "%{http_code}\n" -X GET $url"_ping"
+            
+######################################## ALERTS ############################################      
       - run:
           name: Alert profiles (get)
           command: |
@@ -52,6 +55,8 @@ jobs:
           name: Alert profiles names (delete)
           command: |
             curl -k -u $user":"$pass -H 'Content-Type: application/json' -X DELETE $url"alert-profiles/20200930test"
+            
+######################################## AUDITS ############################################      
       - run:
           name: Audits access (get)
           command: |
@@ -61,6 +66,7 @@ jobs:
           command: |
             curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"audits/access/download" > audits-access.csv
             cat audits-access.csv
+            
       - run:
           name: Audits addmission (get)
           command: |
@@ -70,6 +76,7 @@ jobs:
           command: |
             curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"audits/admission/download" > audits-admission.csv
             cat audits-admission.csv
+            
       - run:
           name: Audits firewall app-embedded (get)
           command: |
@@ -79,13 +86,281 @@ jobs:
           command: |
             curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"audits/firewall/app/app-embedded/download" > audits-firewall-app-app-embedded.csv
             cat audits-firewall-app-app-embedded.csv
+            
       - run:
           name: Audits firewall container (get)
           command: |
             curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"audits/firewall/app/container"
       - run:
-          name: Audits firewall app-embedded download (get)
+          name: Audits firewall container download (get)
           command: |
-            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"audits/firewall/app/container/download" > audits-firewall-app-app-embedded.csv
-            cat audits-firewall-app-app-embedded.csv
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"audits/firewall/app/container/download" > audits-firewall-container.csv
+            cat audits-firewall-container.csv
+            
+      - run:
+          name: Audits firewall host (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"audits/firewall/app/host"
+      - run:
+          name: Audits firewall host download (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"audits/firewall/app/host/download" > audits-firewall-host.csv
+            cat audits-firewall-host.csv
+            
+      - run:
+          name: Audits firewall serverless (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"audits/firewall/app/serverless"
+      - run:
+          name: Audits firewall serverless download (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"audits/firewall/app/serverless/download" > audits-firewall-serverless.csv
+            cat audits-firewall-serverless.csv
+            
+      - run:
+          name: Audits incidents (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"audits/incidents" | tee incidents.json
+      - run:
+          name: Audits incidents acknowledge (patch)
+          command: |
+            id=`cat incidents.json | jq .[0]._id | sed 's/"//g'`
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X PATCH $url"audits/incidents/acknowledge/"$id -d '{"acknowledged":true}'
+      - run:
+          name: Audits incidents download (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"audits/incidents/download" -o audits-incidents.csv
+            cat audits-incidents.csv
+            
+      - run:
+          name: Audits kubernetes (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"audits/kubernetes"
+      - run:
+          name: Audits kubernetes download (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"audits/kubernetes/download" -o audits-kubernetes.csv
+            cat audits-kubernetes.csv
+            
+      - run:
+          name: Audits mgmt (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"audits/mgmt"
+      - run:
+          name: Audits mgmt download (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"audits/mgmt/download" -o audits-mgmt.csv
+            cat audits-mgmt.csv
+      - run:
+          name: Audits mgmt filters(get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"audits/mgmt/filters"
+            
+      - run:
+          name: Audits runtime app-embedded (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"audits/runtime/app-embedded"
+#      - run:
+#          name: Audits runtime app-embedded (delete)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X DELETE $url"audits/runtime/app-embedded"
+      - run:
+          name: Audits runtime app-embedded download (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"audits/runtime/app-embedded/download" -o audits-runtime-app-embedded.csv
+            cat audits-runtime-app-embedded.csv
       
+      - run:
+          name: Audits runtime container (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"audits/runtime/container"
+#      - run:
+#          name: Audits runtime container (delete)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X DELETE $url"audits/runtime/container"
+      - run:
+          name: Audits runtime container download (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"audits/runtime/container/download" -o audits-runtime-container.csv
+            cat audits-runtime-container.csv
+            
+      - run:
+          name: Audits runtime file-integrity (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"audits/runtime/file-integrity"
+      - run:
+          name: Audits runtime file-integrity download (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"audits/runtime/file-integrity/download" -o audits-runtime-file-integrity.csv
+            cat audits-runtime-file-integrity.csv
+      
+      - run:
+          name: Audits runtime host (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"audits/runtime/host"
+#      - run:
+#          name: Audits runtime host (delete)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X DELETE $url"audits/runtime/host"
+      - run:
+          name: Audits runtime host download (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"audits/runtime/host/download" -o audits-runtime-host.csv
+            cat audits-runtime-host.csv
+      
+      - run:
+          name: Audits runtime log-inspection (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"audits/runtime/log-inspection"
+      - run:
+          name: Audits runtime log-inspection download (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"audits/runtime/log-inspection/download" -o audits-runtime-log-inspection.csv
+            cat audits-runtime-log-inspection.csv
+            
+      - run:
+          name: Audits runtime serverless (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"audits/runtime/serverless"
+#      - run:
+#          name: Audits runtime serverless (delete)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X DELETE $url"audits/runtime/serverless"
+      - run:
+          name: Audits runtime serverless download (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"audits/runtime/serverless/download" -o audits-runtime-serverless.csv
+            cat audits-runtime-serverless.csv
+      - run:
+          name: Audits runtime/serverless filters(get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"audits/runtime/serverless/filters"
+            
+      - run:
+          name: Audits trust (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"audits/trust"
+#      - run:
+#          name: Audits trust (delete)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X DELETE $url"audits/trust"
+      - run:
+          name: Audits trust download (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"audits/runtime/host/download" -o audits-trust.csv
+            cat audits-trust.csv
+            
+######################################## AUTHENTICATE ############################################      
+  authenticate:
+    executor: tester
+    
+#    environment:
+#      imagename: "minepicco"
+      
+    steps:
+      - checkout
+
+      - run:
+          name: Autehnticate (post)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X POST $url"authenticate" -d '{ "username":"'$user'", "password":"'$pass'" }' | tee authenticate.json
+#      - run:
+#          name: Autehnticate identity-redirect-url (get)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"authenticate/identity-redirect-url"
+      - run:
+          name: Autehnticate renew (get)
+          command: |
+            token=`cat authenticate.json | jq .token | sed 's/"//g'`
+            curl -k -H "Authorization: Bearer "$token -H 'Content-Type: application/json' -X GET $url"authenticate/renew"
+            
+######################################## AUTHENTICATE CLIENT ############################################
+#      - run:
+#          name: Autehnticate renew (post)
+#          command: |
+#            echo $cert-pem > cert.pem
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' --cert cert.pem -X POST $url"authenticate-client"
+      
+######################################## BACKUP ############################################
+#
+#
+#
+#
+#
+#
+#
+
+######################################## Certificates ############################################
+#
+#
+#
+#
+#
+#
+#
+#
+
+######################################## CLOUD ############################################
+      - run:
+          name: Cloud Compliance (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"cloud/compliance"
+      - run:
+          name: Cloud Compliance download (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"cloud/compliance/download" -o cloud-compliance.csv
+            cat cloud-compliance.csv
+      - run:
+          name: Cloud Compliance progress (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"cloud/compliance/progress"
+      - run:
+          name: Cloud Compliance scan (post)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X POST $url"cloud/compliance/scan"
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"cloud/compliance/progress" | jq
+      - run:
+          name: Cloud Compliance scan (post)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X POST $url"cloud/compliance/stop"
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"cloud/compliance/progress" | jq
+            
+      - run:
+          name: Cloud Discovery (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"cloud/discovery"
+      - run:
+          name: Cloud Discovery download (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"cloud/discovery/download" -o cloud-discovery.csv
+            cat cloud-discovery.csv
+      - run:
+          name: Cloud Discovery progress (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"cloud/discovery/progress" 
+      - run:
+          name: Cloud Discovery scan & progress (post)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X POST $url"cloud/discovery/scan"
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"cloud/discovery/progress" 
+      - run:
+          name: Cloud Discovery stop & progress (post)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X POST $url"cloud/discovery/stop"
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"cloud/discovery/progress" 
+      - run:
+          name: Cloud Discovery VMs (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"cloud/discovery/vms"
+      
+######################################## Code repo scan reports ############################################
+#
+#
+#
+#
+#
+#
+#
+#
+
+######################################## Collections ############################################
