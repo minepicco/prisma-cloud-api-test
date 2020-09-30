@@ -1,0 +1,91 @@
+version: 2.1
+
+executors:
+  tester:
+    docker:
+      - image: minepicco/cc-build-image:latest
+
+workflows:
+  version: 2.1
+  
+  tests:
+    jobs:
+      - defend-vulnerabilities-get:
+          context: api_test
+#      - defend-compliance-get:
+#          context: api_test
+#      - defend-runtime-get:
+#          context: api_test
+#      - defend-waas-get:
+#          context: api_test
+#      - defend-access-get:
+#          context: api_test
+      
+      
+jobs:
+  defend-vulnerabilities-get:
+    executor: tester
+    
+#    environment:
+#      imagename: "minepicco"
+      
+    steps:
+      - checkout
+                     
+      - run:
+          name: _Ping
+          command: |
+            curl -k -s -o /dev/null -w "%{http_code}\n" -X GET $url"_ping"
+      - run:
+          name: Alert profiles (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"alert-profiles"
+      - run:
+          name: Alert profiles (post)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X POST $url"alert-profiles" -d @alert-profiles.json
+      - run:
+          name: Alert profiles names (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"alert-profiles/names"
+      - run:
+          name: Alert profiles names (delete)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X DELETE $url"alert-profiles/20200930test"
+      - run:
+          name: Audits access (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"audits/access"
+      - run:
+          name: Audits access download (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"audits/access/download" > audits-access.csv
+            cat audits-access.csv
+      - run:
+          name: Audits addmission (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"audits/admission"
+      - run:
+          name: Audits firewall app-embedded download (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"audits/admission/download" > audits-admission.csv
+            cat audits-admission.csv
+      - run:
+          name: Audits firewall app-embedded (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"audits/firewall/app/app-embedded"
+      - run:
+          name: Audits firewall app-embedded download (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"audits/firewall/app/app-embedded/download" > audits-firewall-app-app-embedded.csv
+            cat audits-firewall-app-app-embedded.csv
+      - run:
+          name: Audits firewall container (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"audits/firewall/app/container"
+      - run:
+          name: Audits firewall app-embedded download (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"audits/firewall/app/container/download" > audits-firewall-app-app-embedded.csv
+            cat audits-firewall-app-app-embedded.csv
+      
