@@ -11,23 +11,27 @@ workflows:
   tests:
     jobs:
       - audit:
-          context: api_test
+#          context: api_test
+          context: onprem_twistlock_api
       - authenticate:
-          context: api_test
-#      - defend-runtime-get:
 #          context: api_test
-#      - defend-waas-get:
+          context: onprem_twistlock_api
+      - defenders:
 #          context: api_test
-#      - defend-access-get:
-#          context: api_test
-      
-      
+          context: onprem_twistlock_api
+      - customfeeds:
+#          context: api_test      
+          context: onprem_twistlock_api
+      - kubernetes:
+#          context: api_test           
+          context: onprem_twistlock_api
+      - profiles:
+#          context: api_test 
+          context: onprem_twistlock_api
+
 jobs:
   audit:
     executor: tester
-    
-#    environment:
-#      imagename: "minepicco"
       
     steps:
       - checkout
@@ -254,9 +258,6 @@ jobs:
   authenticate:
     executor: tester
     
-#    environment:
-#      imagename: "minepicco"
-      
     steps:
       - checkout
 
@@ -364,3 +365,916 @@ jobs:
 #
 
 ######################################## Collections ############################################
+
+      - run:
+          name: Collections list (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"collections"
+      - run:
+          name: Collections Create (post)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X POST $url"collections" -d @collections.json            
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"collections"
+      - run:
+          name: Collections update (PUT)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X PUT $url"collections/20201001test" -d @collections2.json
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"collections"
+      - run:
+          name: Collections Delete (delete)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X DELETE $url"collections/20201001test"
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"collections"
+
+######################################## Kubernetes auditing ############################################
+
+      - run:
+          name: Generate sinkconsig (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"config/auditsink"
+      - run:
+          name: Validate webhook (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"config/validating-webhook"
+
+######################################## Container scan reports ############################################
+
+      - run:
+          name: Scan report (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"containers"
+      - run:
+          name: Number of containers in environment (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"containers/count"
+      - run:
+          name: Scan report download (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"containers/download" -o containers_download.csv
+            cat containers_download.csv
+      - run:
+          name: List container names (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"containers/names"
+      - run:
+          name: Trigger Scan (scan)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X POST $url"containers/scan"
+
+######################################## Credentials ############################################
+
+      - run:
+          name: List Credentials (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"credentials"
+      - run:
+          name: Create Credentials (post)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X POST $url"credentials" -d @credentials.json
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"credentials" | jq .[]._id
+      - run:
+          name: Credentials Usage (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"credentials/20201001test/usages"
+      - run:
+          name: delete Credentials (delete)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X DELETE $url"credentials/20201001test"
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"credentials" | jq .[]._id
+
+######################################## CredeCustom compliance checks ############################################
+
+      - run:
+          name: List Custom compliance (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"custom-compliance"
+      - run:
+          name: Update/Create Custom compliance (put)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X PUT $url"custom-compliance" -d @custom-compliance.json
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"custom-compliance"
+      - run:
+          name: Delete Custom compliance (put)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X DELETE $url"custom-compliance/9999"
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"custom-compliance"
+
+######################################## CVEs ############################################
+
+      - run:
+          name: List CVEs (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"cves?id=CVE-2018-1102"
+      - run:
+          name: List CVE distributions (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"cves/distribution"
+
+
+######################################## Defenders ############################################
+  defenders:
+    executor: tester
+      
+    steps:
+      - checkout
+
+      - run:
+          name: List Defenders (get)
+          command: |
+            apt-get install -y unzip tar
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"defenders"
+      - run:
+          name: app-embedded creatiton (post)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X POST $url"defenders/app-embedded" -d '{"appID":"test","dataFolder":"/root/","consoleAddr":"asia-northeast1.cloud.twistlock.com","dockerfile":"From ubuntu:18\nRUN apt-get update && apt-get install -y curl\nCOPY entrypoint.sh /root/\nRUN chmod +x entrypoint.sh\nENTRYPOINT [“entrypoint.sh”]\n"}' -o app_embedded_embed_test.zip
+            unzip app_embedded_embed_test.zip
+            cat Dockerfile
+      - run:
+          name: Create daemonset.yaml (post)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X POST $url"defenders/daemonset.yaml" -d '{"consoleAddr":"10.0.0.1","namespace":"twistlock","orchestration":"kubernetes","image":"","privileged":false,"serviceAccounts":true,"istio":false,"microsegmentation":null}'
+      - run:
+          name: List Defenders download (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: text/csv' -X GET $url"defenders/download"
+      - run:
+          name: Fargate (post)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X POST $url"defenders/fargate.json?consoleaddr=http://10.0.0.1&defenderType=appEmbedded" -d @fargate.json -o new_fargate.json 
+            cat new_fargate.json
+      - run:
+          name: Create helm chart (post)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X POST $url"defenders/helm/twistlock-defender-helm.tar.gz" -d '{"consoleAddr":"10.0.0.1","namespace":"twistlock","orchestration":"kubernetes","image":"","privileged":false,"serviceAccounts":true,"istio":false,"microsegmentation":null}' -o twistlock-defender-helm.tar.gz
+            tar zxvf twistlock-defender-helm.tar.gz
+            cat twistlock-defender/Chart.yaml
+      - run:
+          name: Get defender image name (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"defenders/image-name"
+      - run:
+          name: Get install bundle (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"defenders/install-bundle?consoleaddr=10.0.0.1"
+      - run:
+          name: Get defender names (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"defenders/names"
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"defenders/names?connected"
+      - run:
+          name: Get serverless bundle (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"defenders/serverless/bundle?runtime=python" -o twistlock_serverless_defender.zip
+            unzip twistlock_serverless_defender.zip 
+            cat twistlock/serverless.py
+      - run:
+          name: Get defender summary (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"defenders/summary"
+#      - run:
+#          name: all defenders upgrade (post)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X POST $url"defenders/upgrade"
+#      - run:
+#          name: Delete defender (delete)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X DELETE $url"defenders/<HOSTNAME>"
+#      - run:
+#          name: Configure defender (post)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X POST $url"defenders/<HOSTNAME>/features" -d '{"proxyListenerType": "tcp", "registryScanner":"<true|false>", "serverlessScanner":"<true|false>"}'
+#      - run:
+#          name: Restart defender (post)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X POST $url"defenders/<HOSTNAME>/restart"
+#      - run:
+#          name: single defender upgrade (post)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X POST $url"defenders/<HOSTNAME>/upgrade"
+
+
+######################################## Cortex XSOAR alerts ############################################
+#
+#
+#
+#
+#
+#
+#
+#
+
+######################################## Deployments ############################################
+#
+#
+#
+#
+#
+#
+#
+#
+
+######################################## Custom feeds ############################################
+  customfeeds:
+    executor: tester
+    
+    steps:
+      - checkout
+
+      - run:
+          name: List custome vulnerabilities (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"feeds/custom/custom-vulnerabilities"
+#         - run:
+#          name: Update custome vulnerabilities (put)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X PUT $url"feeds/custom/custom-vulnerabilities" -d '{"rules": [{"_id": "","package": "internal-lib","type": "package","minVersionInclusive": "1.1","name": "internal-lib","maxVersionInclusive": "1.8","md5": ""}]}' https://<CONSOLE>:8083/api/v1/feeds/custom/custom-vulnerabilities
+      - run:
+          name: Returns the unique digests for all custom vulnerability feeds configured in the console. (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"feeds/custom/custom-vulnerabilities/digest"
+      - run:
+          name: Retrieves the list of globally whitelisted CVEs.(get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"feeds/custom/cve-allow-list"
+#         - run:
+#          name: Specifies a list of CVEs to globally whitelist. Any previously installed list is overwritten. (put)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X PUT $url"feeds/custom/cve-allow-list" -d '{"rules": [{"cve": "CVE-2018-2222","expiration": "2020-06-18T00:00:00Z"}]}' 
+      - run:
+          name: Returns the digest hash of the CVE allow lists you have configured in Console. (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"feeds/custom/cve-allow-list/digest"
+      - run:
+          name: Retrieves the custom list of blacklisted IP addresses. (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"feeds/custom/ips"
+#         - run:
+#          name: Specifies a custom list of banned IP addresses. (put)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X PUT $url"feeds/custom/ips" -d '{"name":"banned-ips", "feed":["193.171.1.1","193.171.1.2"]}'
+      - run:
+          name: Retrieves the digest from the list of suspicious or high risk IP endpoints configured in the console. (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"feeds/custom/ips/digest"
+      - run:
+          name: Retrieves the custom list of malware signatures. (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"feeds/custom/malware"
+#         - run:
+#          name: Specifies a custom list of malware signatures. (put)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X PUT $url"feeds/custom/malware" -d ''{"name": "malware-sigs","feed": [{"name": "dimaaa","md5": "d4ba1008e7d97458fdd65deca2ba801b"}]}'
+      - run:
+          name: Retrieves the list of digest for all MD5 signatures of malicious executables under custom feeds. (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"feeds/custom/malware/digest"
+#         - run:
+#          name: (Self-Hosted Only) Triggers Console to refresh its data from the Intelligence Stream (post)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X POST $url"feeds/offline/refresh"
+
+######################################## Forensics ############################################
+
+      - run:
+          name: Retrieves all host activities that can be found on Monitor > Evenets > Host Activities (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"forensic/activities"
+      - run:
+          name: Downloads all host activities that can be found on Monitor > Evenets > Host Activities (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"forensic/activities/download" -o host_activities.csv
+            cat host_activities.csv
+
+######################################## Groups (Self-Hosted Only) ############################################
+#
+#      - run:
+#          name: Retrieves a list of all groups. (get)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"groups"
+#
+
+######################################## Host scan reports ############################################
+
+      - run:
+          name: Retrieves all host scan reports. (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"hosts"
+      - run:
+          name: Downloads all host scan reports. (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"hosts/download" -o host_scan.csv
+            cat host_scan.csv
+      - run:
+          name: Returns information about all deployed hosts. (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"hosts/info"
+      - run:
+          name: Re-scan all hosts immediately. (post)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X POST $url"hosts/scan"
+
+######################################## Image scan reports ############################################
+
+      - run:
+          name: Retrieves all image scan reports. (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"images"
+      - run:
+          name: Downloads all image scan reports. (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"images/download" -o images_scan.csv
+            cat images_scan.csv
+      - run:
+          name: Retrieves all image names. (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"images/names"
+      - run:
+          name: Start image scans. (post)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X POST $url"images/scan"
+#      - run:
+#          name: (N/A since 19.11) Retrieves image scan progress. (get)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"images/progress"
+      - run:
+          name: Download the Container Defender image for Linux platforms. (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"images/twistlock_defender.tar.gz" -o twistlock_defender.tar.gz
+            ls -lah twistlock_defender.tar.gz
+      - run:
+          name: DownloadAppEmbeddedDefender generates the embedded defender bundle and serves it to the user. (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"images/twistlock_defender_app_embedded.tar.gz" -o twistlock_app_defender.tar.gz
+            ls -lah twistlock_app_defender.tar.gz
+      - run:
+          name: Returns the the Twistlock Defender in as a layer that can be used in an AWS Lambda implementation. (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"images/twistlock_defender_layer.zip" -o twistlock_layer_defender.tar.gz
+            ls -lah twistlock_layer_defender.tar.gz
+
+
+
+  kubernetes:
+    executor: tester
+      
+    steps:
+      - checkout
+                     
+######################################## Kubernetes ############################################      
+
+      - run:
+          name: This endpoint will trigger a Kubernetes scan. (post)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X POST $url"kubernetes/scan"
+
+
+######################################## Logs ############################################      
+
+      - run:
+          name: Retrieves the latest Console log messages (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"logs/console?lines=10"
+      - run:
+          name: Retrieves the latest log messages for a given Defender and Download. (get)
+          command: |
+            hostname=`curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"defenders" | jq '. |sort| .[0].hostname'| sed 's/"//g'`
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"logs/defender?lines=10&hostname="$hostname
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"logs/defender/download?hostname="$hostname -o defender_logs.tar.gz
+            tar zxvf defender_logs.tar.gz
+            cat defender.log
+
+######################################## VMware Tanzu Application Service droplet scan reports ############################################
+#
+#
+#
+#
+#
+#
+#
+#
+
+######################################## Policies ############################################      
+
+      - run:
+          name: AdmissionPolicy returns the admission policy.  (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"policies/admission"
+#      - run:
+#          name: SetAdmissionPolicy validates and sets the given admission policy.  (put)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X PUT $url"policies/admission" -d @policies-admission.json
+      - run:
+          name: CloudScanPolicy returns the cloud scan settings.   (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"policies/cloud-platforms"
+#      - run:
+#          name: SetCloudPolicy sets the cloud policy.  (put)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X PUT $url"policies/cloud-platforms" -d @policies-cloud-platforms.json
+      - run:
+          name: ImageCICompliancePolicy returns the CI image compliance policy.  (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"policies/compliance/ci/images"
+#      - run:
+#          name: SetPolicy sets the given access/vulnerability or compliance policy. (put)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X PUT $url"policies/compliance/ci/images" -d @policies-compliance-ci-images.json
+      - run:
+          name: /policies/compliance/ci/serverless  (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"policies/compliance/ci/serverless"
+#      - run:
+#          name: /policies/compliance/ci/serverless (put)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X PUT $url"policies/compliance/ci/serverless" -d @policies-compliance-ci-serverless.json
+      - run:
+          name: /policies/compliance/container  (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"policies/compliance/container"
+#      - run:
+#          name: /policies/compliance/container (put)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X PUT $url"policies/compliance/container" -d @policies-compliance-conatainer.json
+      - run:
+          name: /policies/compliance/container/impacted  (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"policies/compliance/container/impacted"
+      - run:
+          name: /policies/compliance/host  (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"policies/compliance/host"
+#      - run:
+#          name: /policies/compliance/container (put)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X PUT $url"policies/compliance/host" -d @policies-compliance-host.json
+      - run:
+          name: /policies/compliance/host/impacted  (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"policies/compliance/host/impacted"
+      - run:
+          name: /policies/compliance/serverless  (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"policies/compliance/serverless"
+#      - run:
+#          name: /policies/compliance/container (put)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X PUT $url"policies/compliance/serverless" -d @policies-compliance-compliance-serverless.json
+      - run:
+          name: /policies/compliance/vms  (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"policies/compliance/vms"
+#      - run:
+#          name: /policies/compliance/container (put)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X PUT $url"policies/compliance/vms" -d @policies-compliance-compliance-vms.json
+      - run:
+          name: /policies/compliance/vms/impacted  (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"policies/compliance/vms/impacted"
+      - run:
+          name: /policies/docker  (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"policies/docker"
+#      - run:
+#          name: /policies/docker (put)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X PUT $url"policies/docker" -d @policies-docker.json
+#      - run:
+#          name: /policies/firewall/app/apispec (post)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X POST $url"policies/firewall/app/apispec" -d @policies-firewall-app-apispecr.json
+      - run:
+          name: /policies/firewall/app/app-embedded (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"policies/firewall/app/app-embedded"
+#      - run:
+#          name: /policies/firewall/app/app-embedded (put)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X PUT $url"policies/firewall/app/app-embedded" -d @policies-firewall-app-app-embedded.json
+      - run:
+          name: /policies/firewall/app/container (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"policies/firewall/app/container"
+#      - run:
+#          name: /policies/firewall/app/container (put)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X PUT $url"policies/firewall/app/container" -d @policies-firewall-app-container.json
+      - run:
+          name: /policies/firewall/app/container/impacted  (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"policies/firewall/app/container/impacted"
+      - run:
+          name: /policies/firewall/app/host (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"policies/firewall/app/host"
+#      - run:
+#          name: /policies/firewall/app/host (put)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X PUT $url"policies/firewall/app/host" -d @policies-firewall-app-host.json
+      - run:
+          name: /policies/firewall/app/network-list (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"policies/firewall/app/network-list"
+      - run:
+          name: /policies/firewall/app/network-list (post)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X POST $url"policies/firewall/app/network-list" -d @network-list.json
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"policies/firewall/app/network-list" | jq
+      - run:
+          name: /policies/firewall/app/network-list (put)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X PUT $url"policies/firewall/app/network-list" -d @network-list2.json
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"policies/firewall/app/network-list" | jq
+      - run:
+          name: /policies/firewall/app/network-list/[id] (delete)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X PUT $url"policies/firewall/app/network-list/20201005test-list" -d @network-list2.json
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"policies/firewall/app/network-list" | jq
+      - run:
+          name: /policies/firewall/app/serverless (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"policies/firewall/app/serverless"
+#      - run:
+#          name: /policies/firewall/app/serverless (put)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X PUT $url"policies/firewall/app/serverless" -d @policies-firewall-app-serverless.json
+      - run:
+          name: /policies/firewall/network (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"policies/firewall/network"
+#      - run:
+#          name: /policies/firewall/network (put)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X PUT $url"policies/firewall/network" -d @policies-firewall-network.json
+      - run:
+          name: /policies/kubernetes-audit (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"policies/kubernetes-audit"
+#      - run:
+#          name: /policies/kubernetes-audit(put)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X PUT $url"policies/kubernetes-audit" -d @policies-kubernetes-audit.json
+      - run:
+          name: /policies/runtime/app-embedded (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"policies/runtime/app-embedded"
+#      - run:
+#          name: /policies/runtime/app-embedded (put)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X PUT $url"policies/runtime/app-embedded" -d @policies-runtime-app-embedded.json
+#      - run:
+#          name: /policies/runtime/app-embedded (post)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X POST $url"policies/runtime/app-embedded" -d @policies-runtime-app-embedded2.json
+      - run:
+          name: /policies/runtime/container (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"policies/runtime/container"
+#      - run:
+#          name: /policies/runtime/container (put)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X PUT $url"policies/runtime/container" -d @policies-runtime-container.json
+#      - run:
+#          name: /policies/runtime/container (post)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X POST $url"policies/runtime/container" -d @policies-runtime-container2.json
+      - run:
+          name: /policies/runtime/container/impacted  (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"policies/runtime/container/impacted"
+      - run:
+          name: /policies/runtime/custom-rules (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"policies/runtime/custom-rules"
+#      - run:
+#          name: /policies/runtime/custom-rules/{id} (put)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X PUT $url"policies/runtime/custom-rules/{id}" -d @policies-runtime-custom-rules.json
+#      - run:
+#          name: /policies/runtime/custom-rules/{id} (delete)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X DELETE $url"policies/runtime/custom-rules/{id}"
+      - run:
+          name: /policies/runtime/host (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"policies/runtime/host"
+#      - run:
+#          name: /policies/runtime/host (put)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X PUT $url"policies/runtime/host" -d @policies-runtime-host.json
+#      - run:
+#          name: /policies/runtime/host (post)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X POST $url"policies/runtime/host" -d @policies-runtime-host2.json
+      - run:
+          name: /policies/runtime/serverless (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"policies/runtime/serverless"
+#      - run:
+#          name: /policies/runtime/host (put)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X PUT $url"policies/runtime/serverless" -d @policies-runtime-serverless.json
+#      - run:
+#          name: /policies/runtime/host (post)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X POST $url"policies/runtime/serverless" -d @policies-runtime-serverless2.json
+      - run:
+          name: /policies/runtime/serverless (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"policies/runtime/serverless"
+#      - run:
+#          name: /policies/runtime/serverless/encode ** "empty function name" error (get)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"policies/runtime/encode"
+      - run:
+          name: /policies/secrets (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"policies/secrets"
+#      - run:
+#          name: /policies/secrets (put)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X PUT $url"policies/secrets" -d @policies-secrets.json
+      - run:
+          name: /policies/vulnerability/ci/images (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"policies/vulnerability/ci/images"
+#      - run:
+#          name: /policies/vulnerability/ci/images (put)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X PUT $url"policies/vulnerability/ci/images" -d @policies-vulnerability-ci-images.json
+      - run:
+          name: /policies/vulnerability/ci/serverless (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"policies/vulnerability/ci/serverless"
+#      - run:
+#          name: /policies/vulnerability/ci/serverless (put)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X PUT $url"policies/vulnerability/ci/serverless" -d @policies-vulnerability-ci-serverless.json
+#      - run:
+#          name: /policies/vulnerability/coderepos (get)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"policies/vulnerability/coderepos"
+#      - run:
+#          name: /policies/vulnerability/coderepos (put)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X PUT $url"policies/vulnerability/ci/coderepos" -d @policies-vulnerability-coderepos.json
+#      - run:
+#          name: /policies/vulnerability/coderepos/impacted (get)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"policies/vulnerability/coderepos/impacted"
+      - run:
+          name: /policies/vulnerability/host (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"policies/vulnerability/host"
+#      - run:
+#          name: /policies/vulnerability/host (put)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X PUT $url"policies/vulnerability/host" -d @policies-vulnerability-host.json
+      - run:
+          name: /policies/vulnerability/host/impacted (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"policies/vulnerability/host/impacted"
+      - run:
+          name: /policies/vulnerability/images (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"policies/vulnerability/images"
+#      - run:
+#          name: /policies/vulnerability/images (put)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X PUT $url"policies/vulnerability/images" -d @policies-vulnerability-images.json
+      - run:
+          name: /policies/vulnerability/images/impacted (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"policies/vulnerability/images/impacted"
+      - run:
+          name: /policies/vulnerability/serverless (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"policies/vulnerability/serverless"
+#      - run:
+#          name: /policies/vulnerability/serverless (put)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X PUT $url"policies/vulnerability/serverless" -d @policies-vulnerability-serverless.json
+      - run:
+          name: /policies/vulnerability/vms (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"policies/vulnerability/vms"
+#      - run:
+#          name: /policies/vulnerability/vms (put)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X PUT $url"policies/vulnerability/vms" -d @policies-vulnerability-vms.json
+      - run:
+          name: /policies/vulnerability/vms/impacted (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"policies/vulnerability/vms/impacted"
+
+  profiles:
+    executor: tester
+      
+    steps:
+      - checkout
+                     
+######################################## Profiles ############################################
+
+      - run:
+          name: /profiles/container (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"profiles/container"
+      - run:
+          name: /profiles/container/download (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"profiles/container/download" -o profiles-container-download.csv
+            cat profiles-container-download.csv
+#      - run:
+#          name: /profiles/container/learn (post)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X POST $url"profiles/container/learn" 
+      - run:
+          name: /profiles/container/{id}/forensic, /profiles/container/{id}/forensic/bundle, /profiles/container/{id}/hosts (get)
+          command: |
+            cid=`curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"profiles/container" | jq .[0]._id | sed 's/"//g'`
+            host=`curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"profiles/container/"$cid"/hosts" | jq .[] | sed 's/"//g'`
+            host=`echo $host | awk '{print $1}'`
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"profiles/container/"$cid"/forensic?hostname="$host 
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"profiles/container/"$cid"/forensic/bundle?hostname="$host -o twistlock_container_forensics.tar.gz
+            
+#      - run:
+#          name: /profiles/container/{id}/hosts (post)
+#          command: |
+#            cid=`curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"profiles/container" | jq .[0]._id | sed 's/"//g'`
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X POST $url"profiles/container/"$cid"/learn" 
+      - run:
+          name: /profiles/container/{id}/rule (get)
+          command: |
+            cid=`curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"profiles/container" | jq .[0]._id | sed 's/"//g'`
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"profiles/container/"$cid"/rule" 
+      - run:
+          name: /profiles/host (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"profiles/host" 
+      - run:
+          name: /profiles/host/download (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"profiles/host/download" -o profiles-host.csv
+            cat profiles-host.csv
+      - run:
+          name: /profiles/host/{id}/forensic, /profiles/host/{id}/forensic/download (get)
+          command: |
+            hid=`curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"profiles/host" | jq .[0]._id | sed 's/"//g'`
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"profiles/host/"$hid"/forensic" 
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"profiles/host/"$cid"/forensic/download" -o profiles-host.csv
+            cat profiles-host.csv
+
+
+######################################## Projects ############################################
+#
+#
+#
+#
+#
+#
+#
+#
+#
+
+######################################## Radar ############################################
+
+      - run:
+          name: /radar/container (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"radar/container" 
+      - run:
+          name: /radar/container/clusters (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"radar/container/clusters" 
+      - run:
+          name: /radar/container/namespaces (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"radar/container/namespaces" 
+      - run:
+          name: /radar/host (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"radar/host" 
+      - run:
+          name: /radar/serverless (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"radar/serverless" 
+      - run:
+          name: /radar/serverless/scan (post), /radar/serverless/stop (post), /radar/serverless/progress (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"radar/serverless/progress" 
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X POST $url"radar/serverless/scan" 
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"radar/serverless/progress" 
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X POST $url"radar/serverless/stop" 
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"radar/serverless/progress" 
+
+######################################## Registry scan reports ############################################
+
+      - run:
+          name: /registry, /registry/download (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"registry" 
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"registry/download" -o registry.csv
+            cat registry.csv
+      - run:
+          name: /registry/names (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"registry/names" 
+      - run:
+          name: /registry/scan (post), /registry/stop (post), /registry/progress (get) # ** progress always return null
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"registry/progress" 
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X POST $url"registry/scan" 
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"registry/progress" 
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X POST $url"registry/stop" 
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"registry/progress" 
+
+######################################## Jenkins and twistcli scan reports ############################################
+
+      - run:
+          name: /scans, /scans/download (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"scans" 
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"scans/download" -o scans.csv
+            cat scans.csv
+#      - run:
+#          name: /scans/vms (post)
+#          command: |
+#            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X POST $url"scans/vms" 
+
+######################################## SCAP ############################################
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+
+######################################## Scripts ############################################
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+
+######################################## Serverless scan reports ############################################
+
+      - run:
+          name: /serverless, /serverless/download (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"serverless" 
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"serverless/download" -o serverless.csv
+            cat serverless.csv
+      - run:
+          name: /serverless/names (get)
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"serverless/names" 
+      - run:
+          name: /serverless/scan (post), /serverless/stop (post), /serverless/progress (get) 
+          command: |
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"serverless/progress" 
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X POST $url"serverless/scan" 
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"serverless/progress" 
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X POST $url"serverless/stop" 
+            curl -k -u $user":"$pass -H 'Content-Type: application/json' -X GET $url"serverless/progress" 
+
+######################################## Settings ############################################
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+
+######################################## Signup ############################################
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+
+
+
+
+
+
+
+
+
